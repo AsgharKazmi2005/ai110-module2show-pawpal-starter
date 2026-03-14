@@ -4,94 +4,93 @@ Backend classes for the pet care planning system.
 """
 
 
+class Task:
+    """Represents a single pet care activity."""
+
+    def __init__(self, description: str, time: str, frequency: str = "daily"):
+        self.description = description   # e.g. "Morning walk"
+        self.time = time                 # e.g. "8:00 AM"
+        self.frequency = frequency       # e.g. "daily", "weekly"
+        self.completed = False
+
+    def mark_complete(self) -> None:
+        self.completed = True
+
+    def mark_incomplete(self) -> None:
+        pass
+
+    def __repr__(self) -> str:
+        pass
+
+
 class Pet:
-    def __init__(self, name: str, species: str, age: int, medical_notes: list[str] = None):
+    """Stores pet details and owns a list of tasks."""
+
+    def __init__(self, name: str, species: str):
         self.name = name
         self.species = species
-        self.age = age
-        self.medical_notes = medical_notes or []
-
-    def get_required_tasks(self) -> list:
-        pass
-
-
-class Owner:
-    def __init__(self, name: str, available_minutes_per_day: int, preferences: list[str] = None):
-        self.name = name
-        self.available_minutes_per_day = available_minutes_per_day
-        self.preferences = preferences or []
-        self.pet = None
-
-    def add_pet(self, pet: Pet) -> None:
-        pass
-
-    def set_availability(self, minutes: int) -> None:
-        pass
-
-
-class Task:
-    def __init__(self, title: str, duration_minutes: int, priority: str,
-                 category: str = "", is_recurring: bool = False, preferred_time_of_day: str = ""):
-        self.title = title
-        self.duration_minutes = duration_minutes
-        self.priority = priority
-        self.category = category
-        self.is_recurring = is_recurring
-        self.preferred_time_of_day = preferred_time_of_day
-
-    def is_high_priority(self) -> bool:
-        pass
-
-    def edit(self, title: str, duration_minutes: int, priority: str) -> None:
-        pass
-
-
-class ScheduledTask:
-    def __init__(self, task: Task, start_time: str, end_time: str, reason: str = ""):
-        self.task = task
-        self.start_time = start_time
-        self.end_time = end_time
-        self.reason = reason
-
-    def get_summary(self) -> str:
-        pass
-
-
-class Schedule:
-    def __init__(self, date: str):
-        self.date = date
-        self.items: list[ScheduledTask] = []
-        self.total_duration_minutes = 0
-        self.skipped_tasks: list[str] = []
-
-    def display(self) -> str:
-        pass
-
-    def explain(self) -> str:
-        pass
-
-    def is_feasible(self) -> bool:
-        pass
-
-
-class Scheduler:
-    def __init__(self, owner: Owner, pet: Pet):
-        self.owner = owner
-        self.pet = pet
-        self.total_minutes_available = owner.available_minutes_per_day
         self.tasks: list[Task] = []
 
     def add_task(self, task: Task) -> None:
-        pass
+        self.tasks.append(task)
 
     def remove_task(self, task: Task) -> None:
         pass
 
-    def filter_by_priority(self, level: str) -> list[Task]:
+    def get_tasks(self) -> list[Task]:
+        return self.tasks
+
+
+class Owner:
+    """Manages multiple pets and provides access to all their tasks."""
+
+    def __init__(self, name: str):
+        self.name = name
+        self.pets: list[Pet] = []
+
+    def add_pet(self, pet: Pet) -> None:
+        self.pets.append(pet)
+
+    def get_all_tasks(self) -> list[tuple[Pet, Task]]:
+        """Returns a flat list of (pet, task) pairs across all pets."""
+        result = []
+        for pet in self.pets:
+            for task in pet.get_tasks():
+                result.append((pet, task))
+        return result
+
+
+class Scheduler:
+    """Retrieves, organizes, and manages tasks across all of an owner's pets."""
+
+    def __init__(self, owner: Owner):
+        self.owner = owner
+
+    def get_all_tasks(self) -> list[tuple[Pet, Task]]:
+        """Asks the Owner for every (pet, task) pair."""
+        return self.owner.get_all_tasks()
+
+    def sort_by_time(self) -> list[tuple[Pet, Task]]:
+        """Returns tasks sorted by scheduled time."""
+        from datetime import datetime
+        def parse_time(pair):
+            try:
+                return datetime.strptime(pair[1].time, "%I:%M %p")
+            except ValueError:
+                return datetime.min
+        return sorted(self.get_all_tasks(), key=parse_time)
+
+    def get_pending_tasks(self) -> list[tuple[Pet, Task]]:
+        """Returns only tasks that are not yet completed."""
         pass
 
-    def sort_tasks(self) -> list[Task]:
-        pass
-
-    def generate_schedule(self) -> Schedule:
-        pass
+    def print_schedule(self) -> None:
+        """Prints Today's Schedule to the terminal."""
+        tasks = self.sort_by_time()
+        print(f"\n{'='*35}")
+        print(f"  Today's Schedule for {self.owner.name}")
+        print(f"{'='*35}")
+        for pet, task in tasks:
+            status = "[x]" if task.completed else "[ ]"
+            print(f"  {status} {task.time:<12} [{pet.name}] {task.description}")
+        print(f"{'='*35}\n")
