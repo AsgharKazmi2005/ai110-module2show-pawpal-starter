@@ -2,7 +2,9 @@
   "permissions": {
     "allow": [
       "Bash(pip install:*)",
-      "Bash(python -m pytest tests/test_pawpal.py -v)"
+      "Bash(python -m pytest tests/test_pawpal.py -v)",
+      "Bash(python -c \"import app\")",
+      "Bash(python -c \":*)"
     ]
   }
 }
